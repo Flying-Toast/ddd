@@ -1,7 +1,8 @@
-mod geometry;
-/// Parsing logic for different 3D model file formats
-mod file_parsing;
+pub mod geometry;
+/// Parsing logic for different 3D file formats
+pub mod parsing;
 
-enum Error {
+#[derive(Debug)]
+pub enum Error {
     StlParse,
 }

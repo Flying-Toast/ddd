@@ -1,6 +1,11 @@
 use std::convert::TryInto;
-use crate::geometry::{Point, Facet};
+use crate::geometry::{Point, Facet, Mesh};
 use crate::Error;
+
+/// Parses a `Mesh` from a binary STL file. The contents of the file are given by `bytes`.
+pub fn parse_binary_stl(bytes: &[u8]) -> Result<Mesh, Error> {
+    BinaryStlParser::new(bytes).parse()
+}
 
 struct BinaryStlParser<'a> {
     buf: &'a [u8],
@@ -20,7 +25,7 @@ impl<'a> BinaryStlParser<'a> {
         }
     }
 
-    pub fn parse(mut self) -> Result<Vec<Facet>, Error> {
+    pub fn parse(mut self) -> Result<Mesh, Error> {
         self.eat_header()?;
         let facet_count = self.parse_u32()?;
         for _ in 0..facet_count {
@@ -30,7 +35,7 @@ impl<'a> BinaryStlParser<'a> {
             let _attribute_byte_count = self.parse_u16()?;
         }
 
-        Ok(self.facets)
+        Ok(Mesh::new(self.facets))
     }
 
     /// How many bytes are left in the buffer

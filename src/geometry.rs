@@ -29,3 +29,16 @@ impl Facet {
         }
     }
 }
+
+#[derive(Debug)]
+pub struct Mesh {
+    facets: Vec<Facet>,
+}
+
+impl Mesh {
+    pub fn new(facets: Vec<Facet>) -> Self {
+        Self {
+            facets,
+        }
+    }
+}
