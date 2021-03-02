@@ -1,1 +1,3 @@
 - integer (microns) `Point`s to avoid fp errors
+	- Rename `Point` to `Pointf` and use `Point` for integer points
+	- STLs can have negative coordinates, translate all coordinates so origin is at corder so that `Point`s use unsigned ints
