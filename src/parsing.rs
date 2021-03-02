@@ -2,14 +2,17 @@ use std::convert::TryInto;
 use crate::geometry::{Point, Facet, Mesh};
 use crate::Error;
 
-/// Parses a `Mesh` from a binary STL file. The contents of the file are given by `bytes`.
-pub fn parse_binary_stl(bytes: &[u8]) -> Result<Mesh, Error> {
-    BinaryStlParser::new(bytes).parse()
+pub enum FileFormat {
+    AsciiStl,
+    BinaryStl,
 }
 
-/// Parses a `Mesh` from an ASCII STL file. `chars` is the ASCII characters/bytes of the file.
-pub fn parse_ascii_stl(chars: &[u8]) -> Result<Mesh, Error> {
-    AsciiStlParser::new(chars).parse()
+///Parses a `Mesh` from the file whose contents are given by `bytes`.
+pub fn parse_mesh_file(bytes: &[u8], format: FileFormat) -> Result<Mesh, Error> {
+    match format {
+        FileFormat::AsciiStl => AsciiStlParser::new(bytes).parse(),
+        FileFormat::BinaryStl => BinaryStlParser::new(bytes).parse(),
+    }
 }
 
 struct BinaryStlParser<'a> {
@@ -139,7 +142,7 @@ impl<'a> AsciiStlParser<'a> {
             self.eat_string(b"outer loop")?;
             self.eat_line_space()?;
             let mut points = Vec::with_capacity(3);
-            for i in 0..3 {
+            for _ in 0..3 {
                 self.eat_string(b"vertex")?;
                 self.eat_whitespace();
                 points.push(self.parse_point()?);
