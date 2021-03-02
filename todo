@@ -1,3 +1,7 @@
 - integer (microns) `Point`s to avoid fp errors
 	- Rename `Point` to `Pointf` and use `Point` for integer points
 	- STLs can have negative coordinates, translate all coordinates so origin is at corder so that `Point`s use unsigned ints
+	- Don't expose `Pointf` (make if pub(crate)) (but `Point` is pub)
+	- Possibly get rid of the `Pointf` struct all together and just convert the floats to ints directly inside the parse function
+		- Give option to choose the units that the STL is in (`enum StlUnit { Inch, Millimeter }`), and then use that to convert
+			to unsigned int points (use millimeters everywhere internally)
