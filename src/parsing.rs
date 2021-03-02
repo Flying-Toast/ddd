@@ -7,7 +7,7 @@ pub fn parse_binary_stl(bytes: &[u8]) -> Result<Mesh, Error> {
     BinaryStlParser::new(bytes).parse()
 }
 
-/// Parses a `Mesh` from an ASCII STL file. `chars` are the ASCII characters/bytes of the file.
+/// Parses a `Mesh` from an ASCII STL file. `chars` is the ASCII characters/bytes of the file.
 pub fn parse_ascii_stl(chars: &[u8]) -> Result<Mesh, Error> {
     AsciiStlParser::new(chars).parse()
 }
