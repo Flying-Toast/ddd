@@ -4,5 +4,6 @@ pub mod parsing;
 
 #[derive(Debug)]
 pub enum Error {
-    StlParse,
+    /// Error parsing a mesh file (STL, OBJ, etc)
+    MeshFileParse,
 }

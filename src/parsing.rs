@@ -47,7 +47,7 @@ impl<'a> BinaryStlParser<'a> {
     fn eat_header(&mut self) -> Result<(), Error> {
         // STL requires the header
         if self.bytes_remaining() < Self::HEADER_LENGTH {
-            Err(Error::StlParse)
+            Err(Error::MeshFileParse)
         } else {
             self.index += Self::HEADER_LENGTH;
             Ok(())
@@ -57,9 +57,12 @@ impl<'a> BinaryStlParser<'a> {
     /// Parse the next u16 from the buffer
     fn parse_u16(&mut self) -> Result<u16, Error> {
         const NUM_BYTES: usize = std::mem::size_of::<u16>();
-        let bytes: [u8; NUM_BYTES] = self.buf[self.index..]
+        if self.bytes_remaining() < NUM_BYTES {
+            return Err(Error::MeshFileParse);
+        }
+        let bytes: [u8; NUM_BYTES] = self.buf[self.index..self.index + NUM_BYTES]
             .try_into()
-            .map_err(|_| Error::StlParse)?;
+            .map_err(|_| Error::MeshFileParse)?;
         self.index += NUM_BYTES;
 
         Ok(u16::from_le_bytes(bytes))
@@ -68,9 +71,12 @@ impl<'a> BinaryStlParser<'a> {
     /// Parse the next u32 from the buffer
     fn parse_u32(&mut self) -> Result<u32, Error> {
         const NUM_BYTES: usize = std::mem::size_of::<u32>();
-        let bytes: [u8; NUM_BYTES] = self.buf[self.index..]
+        if self.bytes_remaining() < NUM_BYTES {
+            return Err(Error::MeshFileParse);
+        }
+        let bytes: [u8; NUM_BYTES] = self.buf[self.index..self.index + NUM_BYTES]
             .try_into()
-            .map_err(|_| Error::StlParse)?;
+            .map_err(|_| Error::MeshFileParse)?;
         self.index += NUM_BYTES;
 
         Ok(u32::from_le_bytes(bytes))
@@ -79,9 +85,12 @@ impl<'a> BinaryStlParser<'a> {
     /// Parse the next f32 from the buffer
     fn parse_f32(&mut self) -> Result<f32, Error> {
         const NUM_BYTES: usize = std::mem::size_of::<f32>();
-        let bytes: [u8; NUM_BYTES] = self.buf[self.index..]
+        if self.bytes_remaining() < NUM_BYTES {
+            return Err(Error::MeshFileParse);
+        }
+        let bytes: [u8; NUM_BYTES] = self.buf[self.index..self.index + NUM_BYTES]
             .try_into()
-            .map_err(|_| Error::StlParse)?;
+            .map_err(|_| Error::MeshFileParse)?;
         self.index += NUM_BYTES;
 
         Ok(f32::from_le_bytes(bytes))
