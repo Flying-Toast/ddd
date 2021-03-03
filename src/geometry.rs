@@ -1,12 +1,13 @@
+/// A 3D point. Coordinates are in microns.
 #[derive(Debug)]
 pub struct Point3D {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
+    pub x: i64,
+    pub y: i64,
+    pub z: i64,
 }
 
 impl Point3D {
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
+    pub fn new(x: i64, y: i64, z: i64) -> Self {
         Self {
             x,
             y,

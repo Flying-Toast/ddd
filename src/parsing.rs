@@ -14,7 +14,8 @@ pub enum MeshFileUnits {
     Millimeters,
 }
 
-const MILLIMETERS_PER_INCH: f32 = 25.4;
+const MICRONS_PER_INCH: f32 = 25400.0;
+const MICRONS_PER_MILLIMETER: f32 = 1000.0;
 
 ///Parses a `Mesh` from the file whose contents are given by `bytes`. `units` is what measurement unit the file uses.
 pub fn parse_mesh_file(bytes: &[u8], format: FileFormat, units: MeshFileUnits) -> Result<Mesh, Error> {
@@ -29,10 +30,10 @@ fn is_valid_coordinate(coordinate: f32) -> bool {
     !matches!(coordinate.classify(), std::num::FpCategory::Infinite | std::num::FpCategory::Nan)
 }
 
-fn convert_to_millimeters(value: f32, units: MeshFileUnits) -> f32 {
+fn convert_to_microns(value: f32, units: MeshFileUnits) -> f32 {
         match units {
-            MeshFileUnits::Inches => value * MILLIMETERS_PER_INCH,
-            MeshFileUnits::Millimeters => value /*already in millimeters; no conversion needed*/,
+            MeshFileUnits::Inches => value * MICRONS_PER_INCH,
+            MeshFileUnits::Millimeters => value * MICRONS_PER_MILLIMETER,
         }
 }
 
@@ -113,7 +114,7 @@ impl<'a> BinaryStlParser<'a> {
         Ok(u32::from_le_bytes(bytes))
     }
 
-    /// Parse the next f32 from the buffer, and convert it into millimeters. Errors if the float is NaN or infinite.
+    /// Parse the next f32 from the buffer, and convert it into microns. Errors if the float is NaN or infinite.
     fn parse_unitized_f32(&mut self) -> Result<f32, Error> {
         const NUM_BYTES: usize = std::mem::size_of::<f32>();
         if self.bytes_remaining() < NUM_BYTES {
@@ -124,7 +125,7 @@ impl<'a> BinaryStlParser<'a> {
             .map_err(|_| Error::MeshFileParse)?;
         self.index += NUM_BYTES;
 
-        let float = convert_to_millimeters(f32::from_le_bytes(bytes), self.units);
+        let float = convert_to_microns(f32::from_le_bytes(bytes), self.units);
 
         if is_valid_coordinate(float) {
             Ok(float)
@@ -135,7 +136,7 @@ impl<'a> BinaryStlParser<'a> {
 
     /// Parse the next `Point3D` from the buffer
     fn parse_point(&mut self) -> Result<Point3D, Error> {
-        Ok(Point3D::new(self.parse_unitized_f32()?, self.parse_unitized_f32()?, self.parse_unitized_f32()?))
+        Ok(Point3D::new(self.parse_unitized_f32()? as i64, self.parse_unitized_f32()? as i64, self.parse_unitized_f32()? as i64))
     }
 
     /// Parse the next `Facet` from the buffer
@@ -249,13 +250,14 @@ impl<'a> AsciiStlParser<'a> {
                 // this unwrap is safe because we already made sure that `chars` isn't empty
                 float.push(self.eat_char().unwrap() as char);
             }
-            let coord = convert_to_millimeters(float.parse().map_err(|_| Error::MeshFileParse)?, self.units);
+            let coord = convert_to_microns(float.parse().map_err(|_| Error::MeshFileParse)?, self.units);
             if !is_valid_coordinate(coord) {
                 return Err(Error::MeshFileParse);
             }
             coordinates[i] = coord;
             self.eat_whitespace();
         }
-        Ok(Point3D::new(coordinates[0], coordinates[1], coordinates[2]))
+
+        Ok(Point3D::new(coordinates[0] as i64, coordinates[1] as i64, coordinates[2] as i64))
     }
 }
