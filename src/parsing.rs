@@ -1,5 +1,5 @@
 use std::convert::TryInto;
-use crate::geometry::{Point3D, Facet, Mesh};
+use crate::geometry::{Vector3D, Facet, Mesh};
 use crate::Error;
 
 pub enum FileFormat {
@@ -60,6 +60,9 @@ impl<'a> BinaryStlParser<'a> {
     pub fn parse(mut self) -> Result<Mesh, Error> {
         self.eat_header()?;
         let facet_count = self.parse_u32()?;
+        if facet_count == 0 {
+            return Err(Error::MeshFileParse);
+        }
         for _ in 0..facet_count {
             let facet = self.parse_facet()?;
             self.facets.push(facet);
@@ -67,7 +70,7 @@ impl<'a> BinaryStlParser<'a> {
             let _attribute_byte_count = self.parse_u16()?;
         }
 
-        Ok(Mesh::new(self.facets))
+        Ok(Mesh::new_zeroed(self.facets))
     }
 
     /// How many bytes are left in the buffer
@@ -134,9 +137,9 @@ impl<'a> BinaryStlParser<'a> {
         }
     }
 
-    /// Parse the next `Point3D` from the buffer
-    fn parse_point(&mut self) -> Result<Point3D, Error> {
-        Ok(Point3D::new(self.parse_unitized_f32()? as i64, self.parse_unitized_f32()? as i64, self.parse_unitized_f32()? as i64))
+    /// Parse the next `Vector3D` from the buffer
+    fn parse_point(&mut self) -> Result<Vector3D, Error> {
+        Ok(Vector3D::new(self.parse_unitized_f32()? as i64, self.parse_unitized_f32()? as i64, self.parse_unitized_f32()? as i64))
     }
 
     /// Parse the next `Facet` from the buffer
@@ -180,7 +183,7 @@ impl<'a> AsciiStlParser<'a> {
                 points.push(self.parse_point()?);
             }
             // this unwrap is safe because we know the Vec has 3 elements
-            let points: [Point3D; 3] = points.try_into().unwrap();
+            let points: [Vector3D; 3] = points.try_into().unwrap();
             self.facets.push(Facet::new(points));
             self.eat_string(b"endloop")?;
             self.eat_line_space()?;
@@ -191,7 +194,11 @@ impl<'a> AsciiStlParser<'a> {
             }
         }
 
-        Ok(Mesh::new(self.facets))
+        if self.facets.len() == 0 {
+            Err(Error::MeshFileParse)
+        } else {
+            Ok(Mesh::new_zeroed(self.facets))
+        }
     }
 
     /// Eats chars from the buffer as long as they match the contents of `string`. Returns `Err` if they don't match.
@@ -242,7 +249,7 @@ impl<'a> AsciiStlParser<'a> {
         }
     }
 
-    fn parse_point(&mut self) -> Result<Point3D, Error> {
+    fn parse_point(&mut self) -> Result<Vector3D, Error> {
         let mut coordinates: [f32; 3] = [0.0; 3];
         for i in 0..3 {
             let mut float = String::new();
@@ -258,6 +265,6 @@ impl<'a> AsciiStlParser<'a> {
             self.eat_whitespace();
         }
 
-        Ok(Point3D::new(coordinates[0] as i64, coordinates[1] as i64, coordinates[2] as i64))
+        Ok(Vector3D::new(coordinates[0] as i64, coordinates[1] as i64, coordinates[2] as i64))
     }
 }
