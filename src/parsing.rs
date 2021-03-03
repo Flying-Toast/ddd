@@ -15,6 +15,11 @@ pub fn parse_mesh_file(bytes: &[u8], format: FileFormat) -> Result<Mesh, Error> 
     }
 }
 
+/// Returns true if `coordinate` is finite and non-NaN.
+fn is_valid_coordinate(coordinate: f32) -> bool {
+    !matches!(coordinate.classify(), std::num::FpCategory::Infinite | std::num::FpCategory::Nan)
+}
+
 struct BinaryStlParser<'a> {
     buf: &'a [u8],
     index: usize,
@@ -90,7 +95,7 @@ impl<'a> BinaryStlParser<'a> {
         Ok(u32::from_le_bytes(bytes))
     }
 
-    /// Parse the next f32 from the buffer
+    /// Parse the next f32 from the buffer. Errors if the float is NaN or infinite.
     fn parse_f32(&mut self) -> Result<f32, Error> {
         const NUM_BYTES: usize = std::mem::size_of::<f32>();
         if self.bytes_remaining() < NUM_BYTES {
@@ -101,7 +106,12 @@ impl<'a> BinaryStlParser<'a> {
             .map_err(|_| Error::MeshFileParse)?;
         self.index += NUM_BYTES;
 
-        Ok(f32::from_le_bytes(bytes))
+        let float = f32::from_le_bytes(bytes);
+        if is_valid_coordinate(float) {
+            Ok(float)
+        } else {
+            Err(Error::MeshFileParse)
+        }
     }
 
     /// Parse the next `Point` from the buffer
@@ -219,6 +229,9 @@ impl<'a> AsciiStlParser<'a> {
                 float.push(self.eat_char().unwrap() as char);
             }
             coordinates[i] = float.parse().map_err(|_| Error::MeshFileParse)?;
+            if !is_valid_coordinate(coordinates[i]) {
+                return Err(Error::MeshFileParse);
+            }
             self.eat_whitespace();
         }
         Ok(Point::new(coordinates[0], coordinates[1], coordinates[2]))
