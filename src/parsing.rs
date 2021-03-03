@@ -7,11 +7,20 @@ pub enum FileFormat {
     BinaryStl,
 }
 
-///Parses a `Mesh` from the file whose contents are given by `bytes`.
-pub fn parse_mesh_file(bytes: &[u8], format: FileFormat) -> Result<Mesh, Error> {
+/// What units the mesh file uses.
+#[derive(Copy, Clone)]
+pub enum MeshFileUnits {
+    Inches,
+    Millimeters,
+}
+
+const MILLIMETERS_PER_INCH: f32 = 25.4;
+
+///Parses a `Mesh` from the file whose contents are given by `bytes`. `units` is what measurement unit the file uses.
+pub fn parse_mesh_file(bytes: &[u8], format: FileFormat, units: MeshFileUnits) -> Result<Mesh, Error> {
     match format {
-        FileFormat::AsciiStl => AsciiStlParser::new(bytes).parse(),
-        FileFormat::BinaryStl => BinaryStlParser::new(bytes).parse(),
+        FileFormat::AsciiStl => AsciiStlParser::new(bytes, units).parse(),
+        FileFormat::BinaryStl => BinaryStlParser::new(bytes, units).parse(),
     }
 }
 
@@ -20,21 +29,30 @@ fn is_valid_coordinate(coordinate: f32) -> bool {
     !matches!(coordinate.classify(), std::num::FpCategory::Infinite | std::num::FpCategory::Nan)
 }
 
+fn convert_to_millimeters(value: f32, units: MeshFileUnits) -> f32 {
+        match units {
+            MeshFileUnits::Inches => value * MILLIMETERS_PER_INCH,
+            MeshFileUnits::Millimeters => value /*already in millimeters; no conversion needed*/,
+        }
+}
+
 struct BinaryStlParser<'a> {
     buf: &'a [u8],
     index: usize,
     facets: Vec<Facet>,
+    units: MeshFileUnits,
 }
 
 impl<'a> BinaryStlParser<'a> {
     /// Defined by the STL standard
     const HEADER_LENGTH: usize = 80;
 
-    pub fn new(bytes: &'a [u8]) -> Self {
+    pub fn new(bytes: &'a [u8], units: MeshFileUnits) -> Self {
         Self {
             buf: bytes,
             index: 0,
             facets: Vec::new(),
+            units,
         }
     }
 
@@ -95,8 +113,8 @@ impl<'a> BinaryStlParser<'a> {
         Ok(u32::from_le_bytes(bytes))
     }
 
-    /// Parse the next f32 from the buffer. Errors if the float is NaN or infinite.
-    fn parse_f32(&mut self) -> Result<f32, Error> {
+    /// Parse the next f32 from the buffer, and convert it into millimeters. Errors if the float is NaN or infinite.
+    fn parse_unitized_f32(&mut self) -> Result<f32, Error> {
         const NUM_BYTES: usize = std::mem::size_of::<f32>();
         if self.bytes_remaining() < NUM_BYTES {
             return Err(Error::MeshFileParse);
@@ -106,7 +124,8 @@ impl<'a> BinaryStlParser<'a> {
             .map_err(|_| Error::MeshFileParse)?;
         self.index += NUM_BYTES;
 
-        let float = f32::from_le_bytes(bytes);
+        let float = convert_to_millimeters(f32::from_le_bytes(bytes), self.units);
+
         if is_valid_coordinate(float) {
             Ok(float)
         } else {
@@ -116,7 +135,7 @@ impl<'a> BinaryStlParser<'a> {
 
     /// Parse the next `Point` from the buffer
     fn parse_point(&mut self) -> Result<Point, Error> {
-        Ok(Point::new(self.parse_f32()?, self.parse_f32()?, self.parse_f32()?))
+        Ok(Point::new(self.parse_unitized_f32()?, self.parse_unitized_f32()?, self.parse_unitized_f32()?))
     }
 
     /// Parse the next `Facet` from the buffer
@@ -130,13 +149,15 @@ impl<'a> BinaryStlParser<'a> {
 struct AsciiStlParser<'a> {
     chars: &'a[u8],
     facets: Vec<Facet>,
+    units: MeshFileUnits,
 }
 
 impl<'a> AsciiStlParser<'a> {
-    pub fn new(chars: &'a[u8]) -> Self {
+    pub fn new(chars: &'a[u8], units: MeshFileUnits) -> Self {
         Self {
             chars,
             facets: Vec::new(),
+            units,
         }
     }
 
@@ -228,10 +249,11 @@ impl<'a> AsciiStlParser<'a> {
                 // this unwrap is safe because we already made sure that `chars` isn't empty
                 float.push(self.eat_char().unwrap() as char);
             }
-            coordinates[i] = float.parse().map_err(|_| Error::MeshFileParse)?;
-            if !is_valid_coordinate(coordinates[i]) {
+            let coord = convert_to_millimeters(float.parse().map_err(|_| Error::MeshFileParse)?, self.units);
+            if !is_valid_coordinate(coord) {
                 return Err(Error::MeshFileParse);
             }
+            coordinates[i] = coord;
             self.eat_whitespace();
         }
         Ok(Point::new(coordinates[0], coordinates[1], coordinates[2]))
