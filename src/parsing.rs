@@ -141,8 +141,8 @@ impl<'a> BinaryStlParser<'a> {
 
     /// Parse the next `Facet` from the buffer
     fn parse_facet(&mut self) -> Result<Facet, Error> {
-        let normal = self.parse_point()?;
-        Ok(Facet::new([self.parse_point()?, self.parse_point()?, self.parse_point()?], normal))
+        let _normal = self.parse_point()?;
+        Ok(Facet::new([self.parse_point()?, self.parse_point()?, self.parse_point()?]))
     }
 }
 
@@ -170,7 +170,7 @@ impl<'a> AsciiStlParser<'a> {
         loop {
             self.eat_string(b"facet normal")?;
             self.eat_whitespace();
-            let normal = self.parse_point()?;
+            let _normal = self.parse_point()?;
             self.eat_string(b"outer loop")?;
             self.eat_line_space()?;
             let mut points = Vec::with_capacity(3);
@@ -181,7 +181,7 @@ impl<'a> AsciiStlParser<'a> {
             }
             // this unwrap is safe because we know the Vec has 3 elements
             let points: [Point3D; 3] = points.try_into().unwrap();
-            self.facets.push(Facet::new(points, normal));
+            self.facets.push(Facet::new(points));
             self.eat_string(b"endloop")?;
             self.eat_line_space()?;
             self.eat_string(b"endfacet")?;

@@ -19,14 +19,12 @@ impl Point3D {
 #[derive(Debug)]
 pub struct Facet {
     points: [Point3D; 3],
-    normal: Point3D,
 }
 
 impl Facet {
-    pub fn new(points: [Point3D; 3], normal: Point3D) -> Self {
+    pub fn new(points: [Point3D; 3]) -> Self {
         Self {
             points,
-            normal,
         }
     }
 }
