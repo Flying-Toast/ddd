@@ -1,5 +1,5 @@
 use std::convert::TryInto;
-use crate::geometry::{Point, Facet, Mesh};
+use crate::geometry::{Point3D, Facet, Mesh};
 use crate::Error;
 
 pub enum FileFormat {
@@ -133,9 +133,9 @@ impl<'a> BinaryStlParser<'a> {
         }
     }
 
-    /// Parse the next `Point` from the buffer
-    fn parse_point(&mut self) -> Result<Point, Error> {
-        Ok(Point::new(self.parse_unitized_f32()?, self.parse_unitized_f32()?, self.parse_unitized_f32()?))
+    /// Parse the next `Point3D` from the buffer
+    fn parse_point(&mut self) -> Result<Point3D, Error> {
+        Ok(Point3D::new(self.parse_unitized_f32()?, self.parse_unitized_f32()?, self.parse_unitized_f32()?))
     }
 
     /// Parse the next `Facet` from the buffer
@@ -179,7 +179,7 @@ impl<'a> AsciiStlParser<'a> {
                 points.push(self.parse_point()?);
             }
             // this unwrap is safe because we know the Vec has 3 elements
-            let points: [Point; 3] = points.try_into().unwrap();
+            let points: [Point3D; 3] = points.try_into().unwrap();
             self.facets.push(Facet::new(points, normal));
             self.eat_string(b"endloop")?;
             self.eat_line_space()?;
@@ -241,7 +241,7 @@ impl<'a> AsciiStlParser<'a> {
         }
     }
 
-    fn parse_point(&mut self) -> Result<Point, Error> {
+    fn parse_point(&mut self) -> Result<Point3D, Error> {
         let mut coordinates: [f32; 3] = [0.0; 3];
         for i in 0..3 {
             let mut float = String::new();
@@ -256,6 +256,6 @@ impl<'a> AsciiStlParser<'a> {
             coordinates[i] = coord;
             self.eat_whitespace();
         }
-        Ok(Point::new(coordinates[0], coordinates[1], coordinates[2]))
+        Ok(Point3D::new(coordinates[0], coordinates[1], coordinates[2]))
     }
 }
