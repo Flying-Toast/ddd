@@ -26,6 +26,20 @@ pub fn parse_mesh_file(bytes: &[u8], format: FileFormat, units: MeshFileUnits) -
     }
 }
 
+/// Detects whether the given STl is ASCII or binary.
+/// Returns either `FileFormat::AsciiStl` or `FileFormat::BinaryStl`.
+///
+/// This assumes that the given STL is either a valid binary STL or a valid ASCII STL - if the STL
+/// is not valid, then the output of this function is meaningless. This shouldn't really matter
+/// though, because trying to parse an invalid STL will fail anyways.
+pub fn detect_stl_type(bytes: &[u8]) -> FileFormat {
+    if bytes.starts_with(b"solid") {
+        FileFormat::AsciiStl
+    } else {
+        FileFormat::BinaryStl
+    }
+}
+
 /// Returns true if `coordinate` is finite and non-NaN.
 fn is_valid_coordinate(coordinate: f32) -> bool {
     !matches!(coordinate.classify(), std::num::FpCategory::Infinite | std::num::FpCategory::Nan)
@@ -168,7 +182,6 @@ impl<'a> AsciiStlParser<'a> {
     }
 
     pub fn parse(mut self) -> Result<Mesh, Error> {
-        self.eat_whitespace();
         self.eat_string(b"solid")?;
         self.eat_line_space()?;
 
