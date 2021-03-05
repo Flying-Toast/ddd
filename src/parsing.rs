@@ -1,5 +1,6 @@
 use std::convert::TryInto;
-use crate::geometry::{Vector3D, Facet, Mesh};
+use crate::geometry::Vector3D;
+use crate::mesh::{Facet, Mesh};
 use crate::Error;
 
 pub enum FileFormat {
@@ -63,6 +64,7 @@ impl<'a> BinaryStlParser<'a> {
         if facet_count == 0 {
             return Err(Error::MeshFileParse);
         }
+        self.facets.reserve(facet_count as usize);
         for _ in 0..facet_count {
             let facet = self.parse_facet()?;
             self.facets.push(facet);
