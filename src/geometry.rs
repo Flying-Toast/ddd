@@ -29,6 +29,7 @@ impl Vector3D {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Vector2D {
     pub x: i64,
     pub y: i64,
@@ -43,7 +44,50 @@ impl Vector2D {
     }
 }
 
-/// A 2D polygon
+/// A closed 2D polygon
+#[derive(Debug)]
 pub struct Polygon {
     vertices: Vec<Vector2D>,
+}
+
+impl Polygon {
+    /// Creates a Polygon builder. `start` is the first vertex of the polygon.
+    pub fn builder(start: Vector2D) -> PolygonBuilder {
+        PolygonBuilder::new(start)
+    }
+}
+
+/// Builds a closed polygon.
+/// New `PolygonBuilders` are created using [Polygon::builder()](Polygon::builder).
+pub struct PolygonBuilder {
+    vertices: Vec<Vector2D>,
+    start_point: Vector2D,
+}
+
+impl PolygonBuilder {
+    fn new(start: Vector2D) -> Self {
+        Self {
+            vertices: vec![start.clone()],
+            start_point: start,
+        }
+    }
+
+    /// Adds a line from the end of the previous point (or from the start point, if this is the first line)
+    /// to the point `to`.
+    pub fn line_to(&mut self, to: Vector2D) {
+        self.vertices.push(to);
+    }
+
+    /// Adds a final line to the start point, then builds the Polygon.
+    pub fn close(self) -> Polygon {
+        let Self {
+            mut vertices,
+            start_point,
+        } = self;
+        vertices.push(start_point);
+
+        Polygon {
+            vertices,
+        }
+    }
 }
