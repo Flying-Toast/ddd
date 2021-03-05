@@ -3,12 +3,16 @@ use crate::geometry::Vector3D;
 use crate::mesh::{Facet, Mesh};
 use crate::Error;
 
+/// File formats containg mesh data.
+///
+/// STL files actaully come in 2 different formats: binary and ASCII.
+/// Use [`detect_stl_type`](detect_stl_type) to determine which kind a given STL is.
 pub enum FileFormat {
     AsciiStl,
     BinaryStl,
 }
 
-/// What units the mesh file uses.
+/// Measurement units for mesh files.
 #[derive(Copy, Clone)]
 pub enum MeshFileUnits {
     Inches,
@@ -18,7 +22,8 @@ pub enum MeshFileUnits {
 const MICRONS_PER_INCH: f32 = 25400.0;
 const MICRONS_PER_MILLIMETER: f32 = 1000.0;
 
-///Parses a `Mesh` from the file whose contents are given by `bytes`. `units` is what measurement unit the file uses.
+/// Parses a `Mesh` from the file whose contents are given by `bytes`. `units` is what measurement unit the file uses.
+/// All measurements are converted to microns, which is what the rest of the library uses.
 pub fn parse_mesh_file(bytes: &[u8], format: FileFormat, units: MeshFileUnits) -> Result<Mesh, Error> {
     match format {
         FileFormat::AsciiStl => AsciiStlParser::new(bytes, units).parse(),
