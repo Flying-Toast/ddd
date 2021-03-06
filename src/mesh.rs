@@ -37,22 +37,6 @@ impl Facet {
 
         Vector3D::new(min_x, min_y, min_z)
     }
-
-    /// The highest corner of the bounding cube around the facet.
-    pub fn upper_bound(&self) -> Vector3D {
-        let mut max_x = self.points[0].x;
-        let mut max_y = self.points[0].y;
-        let mut max_z = self.points[0].z;
-
-        // skip 1 because the first point is already in max_x/max_y/max_z
-        for point in self.points.iter().skip(1) {
-            max_x = std::cmp::max(point.x, max_x);
-            max_y = std::cmp::max(point.y, max_y);
-            max_z = std::cmp::max(point.z, max_z);
-        }
-
-        Vector3D::new(max_x, max_y, max_z)
-    }
 }
 
 #[derive(Debug)]
