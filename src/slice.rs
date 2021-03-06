@@ -1,5 +1,4 @@
 use crate::geometry::Polygon;
-use crate::mesh::Mesh;
 
 /// A single closed polygon in a slice. One slice can contain multiple closed polygons that aren't connected.
 #[derive(Debug)]

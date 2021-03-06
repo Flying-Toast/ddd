@@ -73,8 +73,4 @@ impl Mesh {
             facet.translate(&translation);
         }
     }
-
-    pub fn facets(&self) -> &[Facet] {
-        &self.facets
-    }
 }
