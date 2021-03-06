@@ -37,6 +37,18 @@ impl Facet {
 
         Vector3D::new(min_x, min_y, min_z)
     }
+
+    /// The lowest z value of all the facet's vertices
+    pub fn lower_z_bound(&self) -> i64 {
+        // the unwrap is ok because we know that `points` isn't empty
+        self.points.iter().map(|point| point.z).min().unwrap()
+    }
+
+    /// The highest z value of all the facet's vertices
+    pub fn upper_z_bound(&self) -> i64 {
+        // the unwrap is ok because we know that `points` isn't empty
+        self.points.iter().map(|point| point.z).max().unwrap()
+    }
 }
 
 #[derive(Debug)]
@@ -45,7 +57,9 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    /// Creates a new `Mesh` from the given facets and 'zeroes' the mesh (see [zeroize](Self::zeroize)).
+    /// Creates a new `Mesh` from the given facets and 'zeroes' the
+    /// mesh (translates it into positive coordinate space).
+    /// The most negative (or least positive) x coordinate will become x=0, etc.
     pub fn new_zeroed(facets: Vec<Facet>) -> Self {
         let mut this = Self {
             facets,
@@ -55,9 +69,7 @@ impl Mesh {
         this
     }
 
-    /// Translates the mesh into positive coordinate space.
-    /// The most negative (or least positive) x coordinate will become x=0, etc.
-    pub fn zeroize(&mut self) {
+    fn zeroize(&mut self) {
         let mut translation = self.facets[0].lower_bound();
         for min_point in self.facets.iter().skip(1).map(|facet| facet.lower_bound()) {
             translation.x = std::cmp::min(translation.x, min_point.x);
