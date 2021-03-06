@@ -80,9 +80,6 @@ impl<'a> BinaryStlParser<'a> {
     pub fn parse(mut self) -> Result<Mesh, Error> {
         self.eat_header()?;
         let facet_count = self.parse_u32()?;
-        if facet_count == 0 {
-            return Err(Error::MeshFileParse);
-        }
         self.facets.reserve(facet_count as usize);
         for _ in 0..facet_count {
             let facet = self.parse_facet()?;
@@ -214,11 +211,7 @@ impl<'a> AsciiStlParser<'a> {
             }
         }
 
-        if self.facets.len() == 0 {
-            Err(Error::MeshFileParse)
-        } else {
-            Ok(Mesh::new_zeroed(self.facets))
-        }
+        Ok(Mesh::new_zeroed(self.facets))
     }
 
     /// Eats chars from the buffer as long as they match the contents of `string`. Returns `Err` if they don't match.
