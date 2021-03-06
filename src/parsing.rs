@@ -7,6 +7,7 @@ use crate::Error;
 ///
 /// STL files actaully come in 2 different formats: binary and ASCII.
 /// Use [`detect_stl_type`](detect_stl_type) to determine which kind a given STL is.
+#[derive(Debug)]
 pub enum FileFormat {
     AsciiStl,
     BinaryStl,

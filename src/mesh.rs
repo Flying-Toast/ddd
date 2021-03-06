@@ -18,6 +18,10 @@ impl Facet {
         }
     }
 
+    pub fn points(&self) -> &[Vector3D; 3] {
+        &self.points
+    }
+
     /// The lowest corner of the bounding cube around the facet.
     pub fn lower_bound(&self) -> Vector3D {
         let mut min_x = self.points[0].x;
@@ -84,5 +88,9 @@ impl Mesh {
         for facet in &mut self.facets {
             facet.translate(&translation);
         }
+    }
+
+    pub fn facets(&self) -> &[Facet] {
+        &self.facets
     }
 }
