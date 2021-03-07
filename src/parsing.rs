@@ -6,7 +6,7 @@ use crate::Error;
 /// File formats containg mesh data.
 ///
 /// STL files actaully come in 2 different formats: binary and ASCII.
-/// Use [`detect_stl_type`](detect_stl_type) to determine which kind a given STL is.
+/// Use [detect_stl_type] to determine which kind a given STL is.
 #[derive(Debug)]
 pub enum FileFormat {
     AsciiStl,
@@ -39,7 +39,8 @@ pub fn parse_mesh_file(bytes: &[u8], format: FileFormat, units: MeshFileUnits) -
 /// is not valid, then the output of this function is meaningless. This shouldn't really matter
 /// though, because trying to parse an invalid STL will fail anyways.
 pub fn detect_stl_type(bytes: &[u8]) -> FileFormat {
-    if bytes.starts_with(b"solid") {
+    // double-check using bytes.is_ascii, because Solidworks outputs binary STLs with "solid" in the header
+    if bytes.starts_with(b"solid") && bytes.is_ascii() {
         FileFormat::AsciiStl
     } else {
         FileFormat::BinaryStl

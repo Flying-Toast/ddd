@@ -1,5 +1,6 @@
 use crate::geometry::Vector3D;
 
+/// Traingle face of a mesh
 #[derive(Debug)]
 pub struct Facet {
     points: [Vector3D; 3],
@@ -51,6 +52,7 @@ impl Facet {
     }
 }
 
+/// Collection of [Facet]s
 #[derive(Debug)]
 pub struct Mesh {
     facets: Vec<Facet>,
@@ -128,7 +130,8 @@ impl<'a> Iterator for FacetIntersections<'a> {
     }
 }
 
-/// List of facets of a mesh, sorted by z-height to make slicing more efficient
+/// List of facets of a mesh, sorted by z-height to make slicing more efficient.
+/// Created by [Mesh::zsort_facets].
 pub struct ZSortedFacets {
     /// All facets, sorted by lower bound in descending order
     facets: Vec<CachedFacetBounds>,
