@@ -73,11 +73,7 @@ impl Scene {
 
     /// Sorts the facets to prepare for slicing
     pub fn zsort_facets(self) -> ZSortedFacets {
-        let lower_z_bound = self.combined_facets
-            .iter()
-            .map(|facet| facet.lower_z_bound())
-            .min().unwrap();
-        ZSortedFacets::new(self.combined_facets, lower_z_bound)
+        ZSortedFacets::new(self.combined_facets)
     }
 }
 
@@ -122,19 +118,17 @@ pub struct ZSortedFacets {
 }
 
 impl ZSortedFacets {
-    fn new(facets: Vec<Facet>, start_height: i64) -> Self {
+    fn new(facets: Vec<Facet>) -> Self {
+        // start height is the lowest z value of all the facets' vetexes
+        let start_height = facets.iter().map(|facet| facet.lower_z_bound()).min().unwrap();
         let mut facets: Vec<CachedFacetBounds> = facets.into_iter().map(CachedFacetBounds::new).collect();
         // compare b to a so it sorts in descending order
         facets.sort_unstable_by(|a, b| b.lower_bound.cmp(&a.lower_bound));
 
-        let mut this = Self {
+        Self {
             facets,
             current_height: start_height,
-        };
-        // advance height by 0 to trim any facets that are already below the start height
-        this.advance_height(0);
-
-        this
+        }
     }
 
     /// Increases the current height by `increment` and trims facets whose upper bounds
