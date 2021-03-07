@@ -189,7 +189,7 @@ impl ZSortedFacets {
     }
 
     /// Returns true if there are no more facet vertices at or above the current height
-    pub fn done(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.facets.is_empty()
     }
 }

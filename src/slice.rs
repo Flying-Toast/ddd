@@ -32,10 +32,16 @@ impl<'a> Slicer<'a> {
     fn slice(&self, scene: Scene) -> Result<Vec<Slice>, Error> {
         let mut facets = scene.zsort_facets();
 
+        while !facets.is_empty() {
+
+            facets.advance_height(self.config.layer_height);
+        }
+
         todo!();
     }
 }
 
 pub struct SlicerConfig {
+    /// Thickness of each printed slice
     pub layer_height: u64,
 }
