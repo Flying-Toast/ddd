@@ -96,9 +96,12 @@ impl Mesh {
     }
 }
 
+/// Struct that simply wraps a Facet and saves the results of Facet::lower_z_bound() and Facet::upper_z_bound()
 struct CachedFacetBounds {
     facet: Facet,
+    /// Cached value of self.facet.lower_z_bound()
     lower_bound: i64,
+    /// Cached value of self.facet.upper_z_bound()
     upper_bound: i64,
 }
 
@@ -112,16 +115,9 @@ impl CachedFacetBounds {
     }
 }
 
+/// Iterator created by [ZSortedFacets], see [ZSortedFacets::facet_intersections]
 pub struct FacetIntersections<'a> {
     facets: std::slice::Iter<'a, CachedFacetBounds>,
-}
-
-impl<'a> FacetIntersections<'a> {
-    fn new(facets: &'a [CachedFacetBounds]) -> Self {
-        Self {
-            facets: facets.iter(),
-        }
-    }
 }
 
 impl<'a> Iterator for FacetIntersections<'a> {
@@ -132,6 +128,7 @@ impl<'a> Iterator for FacetIntersections<'a> {
     }
 }
 
+/// List of facets of a mesh, sorted by z-height to make slicing more efficient
 pub struct ZSortedFacets {
     /// All facets, sorted by lower bound in descending order
     facets: Vec<CachedFacetBounds>,
@@ -161,12 +158,36 @@ impl ZSortedFacets {
     /// current height have already been trimmed,
     pub fn advance_height(&mut self, increment: u64) {
         self.current_height += increment as i64;
-        for i in self.facets.iter().enumerate().rev()
+
+        // iterator over self.facets indexes (descending order) of facets below the current height
+        let mut index_iter = self.facets.iter().enumerate().rev()
             .take_while(|(_, facet)| facet.lower_bound < self.current_height)
             .filter(|(_, facet)| facet.upper_bound < self.current_height)
             .map(|(index, _)| index)
-        {
-            todo!("trim");
+            .peekable();
+
+        let mut ranges: Vec<std::ops::RangeInclusive<usize>> = Vec::new();
+        // this loop collapses consecutive indexes into ranges.
+        // for example if `index_iter` is [0, 2, 3, 5, 6, 7, 9, 12, 13].rev(), then
+        // `ranges` will be filled with [12..=13, 9..=9, 5..=7, 2..=3, 0..=0]
+        while let Some(range_end) = index_iter.next() {
+            let mut range_start = range_end;
+            while let Some(&next) = index_iter.peek() {
+                if next == range_start - 1 {
+                    range_start = next;
+                    let _ = index_iter.next();
+                } else {
+                    break;
+                }
+            }
+            ranges.push(range_start..=range_end);
+        }
+
+        // we use drain to remove the ranges instead of removing by individual indexes,
+        // because doing self.facets.remove(index) n times would cause n memcpys, whereas
+        // self.facets.drain(0..=n) only causes one memcpy.
+        for i in ranges {
+            self.facets.drain(i);
         }
     }
 
@@ -177,9 +198,13 @@ impl ZSortedFacets {
             .map(|(index, _)| index);
 
         if let Some(index) = first_facet_above {
-            FacetIntersections::new(&self.facets[index + 1..])
+            FacetIntersections {
+                facets: self.facets[index + 1..].iter(),
+            }
         } else {
-            FacetIntersections::new(&self.facets[..])
+            FacetIntersections {
+                facets: self.facets[..].iter(),
+            }
         }
     }
 
