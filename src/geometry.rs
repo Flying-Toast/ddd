@@ -20,13 +20,6 @@ impl Vector3D {
         self.y += other.y;
         self.z += other.z;
     }
-
-    /// Multiplies each compenent of the vector by the given scalar.
-    pub fn mul(&mut self, scalar: i64) {
-        self.x *= scalar;
-        self.y *= scalar;
-        self.z *= scalar;
-    }
 }
 
 #[derive(Debug, Clone)]

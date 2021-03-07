@@ -53,10 +53,10 @@ fn is_valid_coordinate(coordinate: f32) -> bool {
 }
 
 fn convert_to_microns(value: f32, units: MeshFileUnits) -> f32 {
-        match units {
-            MeshFileUnits::Inches => value * MICRONS_PER_INCH,
-            MeshFileUnits::Millimeters => value * MICRONS_PER_MILLIMETER,
-        }
+    match units {
+        MeshFileUnits::Inches => value * MICRONS_PER_INCH,
+        MeshFileUnits::Millimeters => value * MICRONS_PER_MILLIMETER,
+    }
 }
 
 struct BinaryStlParser<'a> {
@@ -70,7 +70,7 @@ impl<'a> BinaryStlParser<'a> {
     /// Defined by the STL standard
     const HEADER_LENGTH: usize = 80;
 
-    pub fn new(bytes: &'a [u8], units: MeshFileUnits) -> Self {
+    fn new(bytes: &'a [u8], units: MeshFileUnits) -> Self {
         Self {
             buf: bytes,
             index: 0,
@@ -79,7 +79,7 @@ impl<'a> BinaryStlParser<'a> {
         }
     }
 
-    pub fn parse(mut self) -> Result<Mesh, Error> {
+    fn parse(mut self) -> Result<Mesh, Error> {
         self.eat_header()?;
         let facet_count = self.parse_u32()?;
         if facet_count == 0 {
@@ -93,7 +93,7 @@ impl<'a> BinaryStlParser<'a> {
             let _attribute_byte_count = self.parse_u16()?;
         }
 
-        Ok(Mesh::new_zeroed(self.facets))
+        Ok(Mesh::new(self.facets))
     }
 
     /// How many bytes are left in the buffer
@@ -180,7 +180,7 @@ struct AsciiStlParser<'a> {
 }
 
 impl<'a> AsciiStlParser<'a> {
-    pub fn new(chars: &'a[u8], units: MeshFileUnits) -> Self {
+    fn new(chars: &'a[u8], units: MeshFileUnits) -> Self {
         Self {
             chars,
             facets: Vec::new(),
@@ -188,7 +188,7 @@ impl<'a> AsciiStlParser<'a> {
         }
     }
 
-    pub fn parse(mut self) -> Result<Mesh, Error> {
+    fn parse(mut self) -> Result<Mesh, Error> {
         self.eat_string(b"solid")?;
         self.eat_line_space()?;
 
@@ -219,7 +219,7 @@ impl<'a> AsciiStlParser<'a> {
         if self.facets.is_empty() {
             Err(Error::MeshFileParse)
         } else {
-            Ok(Mesh::new_zeroed(self.facets))
+            Ok(Mesh::new(self.facets))
         }
     }
 
