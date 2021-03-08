@@ -172,7 +172,7 @@ impl ZSortedFacets {
     }
 
     /// Returns an iterator over all facets that intersect with a plane at the current height
-    pub fn facet_intersections(&self) -> FacetIntersections {
+    pub fn intersections(&self) -> FacetIntersections {
         let first_facet_above = self.facets.iter().enumerate().rev()
             .find(|(_, facet)| facet.lower_bound > self.current_height)
             .map(|(index, _)| index);

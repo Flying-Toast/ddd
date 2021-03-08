@@ -8,4 +8,6 @@ pub mod slice;
 pub enum Error {
     /// Error parsing a mesh file (STL, OBJ, etc)
     MeshFileParse,
+    /// Attempted to slice a scene with no meshes in it
+    EmptyScene,
 }

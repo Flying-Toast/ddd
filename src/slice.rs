@@ -30,9 +30,12 @@ impl<'a> Slicer<'a> {
 
     /// Slices the given scene
     fn slice(&self, scene: Scene) -> Result<Vec<Slice>, Error> {
+        if scene.is_empty() { return Err(Error::EmptyScene); }
         let mut facets = scene.zsort_facets();
 
         while !facets.is_empty() {
+            for facet in facets.intersections() {
+            }
 
             facets.advance_height(self.config.layer_height);
         }
