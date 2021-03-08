@@ -1,4 +1,4 @@
-use crate::geometry::Polygon;
+use crate::geometry::{Polygon, Vector3D};
 use crate::mesh::Scene;
 use crate::Error;
 
@@ -16,6 +16,22 @@ pub struct Slice {
     /// The thickness (in microns) of this slice (the "layer height")
     thickness: u64,
     islands: Vec<SliceIsland>,
+}
+
+/// Returns a new point which is the result of interpolating `a` along the line segment a---b so that
+/// its z coordinate is equal to `plane_z`. Returns `None` if a---b doesn't intersect the z=`plane_z` plane.
+fn zinterpolate(a: &Vector3D, b: &Vector3D, plane_z: i64) -> Option<Vector3D> {
+    // if either point is already on the plane, there is no interpolation to do
+    if a.z == plane_z { return Some(a.clone()); }
+    if b.z == plane_z { return Some(b.clone()); }
+
+    // check if the points are on opposite sides of the plane
+    let (below, above);
+    if (a.z < plane_z && b.z > plane_z) || (a.z > plane_z && b.z < plane_z) {
+        todo!();
+    } else {
+        None
+    }
 }
 
 /// Turns meshes into [Slice]s
