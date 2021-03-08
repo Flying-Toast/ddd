@@ -35,9 +35,9 @@ impl<'a> Slicer<'a> {
 
         while !ff.is_empty() {
             for facet in ff.intersections() {
-                let (vertices_below, vertices_above): (Vec<_>, Vec<_>) = facet.vertices().iter()
-                    .partition(|&vertex| vertex.z < ff.current_height());
-                //TODO: handle case where some vertices are exactly one the plane
+                //TODO:
+                // interpolate the vertices
+                // make sure to handle case where some vertices are exactly on the plane
             }
 
             ff.advance_height(self.config.layer_height);
