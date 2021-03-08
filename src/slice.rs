@@ -13,7 +13,7 @@ pub struct SliceIsland {
 /// A single layer of a sliced mesh. Composed of multiple `SliceIsland`s.
 #[derive(Debug)]
 pub struct Slice {
-    /// The thickness (in microns) of this slice (the "layer height")
+    /// The thickness (in nanometers) of this slice (the "layer height")
     thickness: u64,
     islands: Vec<SliceIsland>,
 }
