@@ -3,32 +3,32 @@ use crate::geometry::Vector3D;
 /// Traingle face of a mesh
 #[derive(Debug)]
 pub struct Facet {
-    points: [Vector3D; 3],
+    vertices: [Vector3D; 3],
 }
 
 impl Facet {
-    pub fn new(points: [Vector3D; 3]) -> Self {
+    pub fn new(vertices: [Vector3D; 3]) -> Self {
         Self {
-            points,
+            vertices,
         }
     }
 
     fn translate(&mut self, translation: &Vector3D) {
-        for point in &mut self.points {
-            point.add(translation);
+        for vertex in &mut self.vertices {
+            vertex.add(translation);
         }
     }
 
     /// The lowest z value of all the facet's vertices
     fn lower_z_bound(&self) -> i64 {
-        // the unwrap is ok because we know that `points` isn't empty
-        self.points.iter().map(|point| point.z).min().unwrap()
+        // the unwrap is ok because we know that `vertices` isn't empty
+        self.vertices.iter().map(|point| point.z).min().unwrap()
     }
 
     /// The highest z value of all the facet's vertices
     fn upper_z_bound(&self) -> i64 {
-        // the unwrap is ok because we know that `points` isn't empty
-        self.points.iter().map(|point| point.z).max().unwrap()
+        // the unwrap is ok because we know that `vertices` isn't empty
+        self.vertices.iter().map(|point| point.z).max().unwrap()
     }
 }
 
@@ -71,14 +71,17 @@ impl Scene {
         self.combined_facets.append(&mut mesh.facets)
     }
 
-    /// Sorts the facets to prepare for slicing
-    pub fn zsort_facets(self) -> ZSortedFacets {
-        ZSortedFacets::new(self.combined_facets)
+    pub fn to_facet_filter(self) -> FacetFilter {
+        FacetFilter::new(self.combined_facets)
     }
 }
 
-/// Struct that simply wraps a Facet and saves the results of Facet::lower_z_bound() and Facet::upper_z_bound()
-struct CachedFacetBounds {
+/// Struct that simply wraps a Facet and caches the results of Facet::lower_z_bound() and Facet::upper_z_bound().
+///
+/// We convert `Facet`s to `BoundedFacet`s once a scene has been converted to a `FacetFilter`. By that point
+/// the facets are no longer part of a mesh and thus won't be moved or otherwise mutated, so we are able to cache
+/// the upper/lower z bounds knowing that the bounds won't change.
+pub struct BoundedFacet {
     facet: Facet,
     /// Cached value of self.facet.lower_z_bound()
     lower_bound: i64,
@@ -86,7 +89,7 @@ struct CachedFacetBounds {
     upper_bound: i64,
 }
 
-impl CachedFacetBounds {
+impl BoundedFacet {
     fn new(facet: Facet) -> Self {
         Self {
             lower_bound: facet.lower_z_bound(),
@@ -94,34 +97,33 @@ impl CachedFacetBounds {
             facet,
         }
     }
-}
 
-/// Iterator created by [ZSortedFacets], see [ZSortedFacets::facet_intersections]
-pub struct FacetIntersections<'a> {
-    facets: std::slice::Iter<'a, CachedFacetBounds>,
-}
+    pub fn vertices(&self) -> &[Vector3D; 3] {
+        &self.facet.vertices
+    }
 
-impl<'a> Iterator for FacetIntersections<'a> {
-    type Item = &'a Facet;
+    pub fn lower_z_bound(&self) -> i64 {
+        self.lower_bound
+    }
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.facets.next().map(|i| &i.facet)
+    pub fn upper_z_bound(&self) -> i64 {
+        self.upper_bound
     }
 }
 
-/// List of facets of a mesh, sorted by z-height to make slicing more efficient.
-/// Created by [Scene::zsort_facets].
-pub struct ZSortedFacets {
+/// Structure that efficiently filters out the facets that intersect a plane at a given height.
+/// Created by [Scene::to_facet_filter].
+pub struct FacetFilter {
     /// All facets, sorted by lower bound in descending order
-    facets: Vec<CachedFacetBounds>,
+    facets: Vec<BoundedFacet>,
     current_height: i64,
 }
 
-impl ZSortedFacets {
+impl FacetFilter {
     fn new(facets: Vec<Facet>) -> Self {
         // start height is the lowest z value of all the facets' vetexes
         let start_height = facets.iter().map(|facet| facet.lower_z_bound()).min().unwrap();
-        let mut facets: Vec<CachedFacetBounds> = facets.into_iter().map(CachedFacetBounds::new).collect();
+        let mut facets: Vec<BoundedFacet> = facets.into_iter().map(BoundedFacet::new).collect();
         // compare b to a so it sorts in descending order
         facets.sort_unstable_by(|a, b| b.lower_bound.cmp(&a.lower_bound));
 
@@ -171,25 +173,26 @@ impl ZSortedFacets {
         }
     }
 
-    /// Returns an iterator over all facets that intersect with a plane at the current height
-    pub fn intersections(&self) -> FacetIntersections {
+    /// Returns an iterator over all facets that intersect with a plane at the current height.
+    /// Includes facets that are entirely flat on the plane.
+    pub fn intersections(&self) -> &[BoundedFacet] {
         let first_facet_above = self.facets.iter().enumerate().rev()
             .find(|(_, facet)| facet.lower_bound > self.current_height)
             .map(|(index, _)| index);
 
         if let Some(index) = first_facet_above {
-            FacetIntersections {
-                facets: self.facets[index + 1..].iter(),
-            }
+            &self.facets[index + 1..]
         } else {
-            FacetIntersections {
-                facets: self.facets[..].iter(),
-            }
+            &self.facets[..]
         }
     }
 
     /// Returns true if there are no more facet vertices at or above the current height
     pub fn is_empty(&self) -> bool {
         self.facets.is_empty()
+    }
+
+    pub fn current_height(&self) -> i64 {
+        self.current_height
     }
 }

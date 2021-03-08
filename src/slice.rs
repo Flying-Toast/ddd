@@ -24,20 +24,23 @@ pub struct Slicer<'a> {
 }
 
 impl<'a> Slicer<'a> {
-    fn new(config: &'a SlicerConfig) -> Self {
+    pub fn new(config: &'a SlicerConfig) -> Self {
         Self { config }
     }
 
     /// Slices the given scene
-    fn slice(&self, scene: Scene) -> Result<Vec<Slice>, Error> {
+    pub fn slice(&self, scene: Scene) -> Result<Vec<Slice>, Error> {
         if scene.is_empty() { return Err(Error::EmptyScene); }
-        let mut facets = scene.zsort_facets();
+        let mut ff = scene.to_facet_filter();
 
-        while !facets.is_empty() {
-            for facet in facets.intersections() {
+        while !ff.is_empty() {
+            for facet in ff.intersections() {
+                let (vertices_below, vertices_above): (Vec<_>, Vec<_>) = facet.vertices().iter()
+                    .partition(|&vertex| vertex.z < ff.current_height());
+                //TODO: handle case where some vertices are exactly one the plane
             }
 
-            facets.advance_height(self.config.layer_height);
+            ff.advance_height(self.config.layer_height);
         }
 
         todo!();
