@@ -121,9 +121,9 @@ pub struct FacetFilter {
 
 impl FacetFilter {
     fn new(facets: Vec<Facet>) -> Self {
-        // start height is the lowest z value of all the facets' vetexes
-        let start_height = facets.iter().map(|facet| facet.lower_z_bound()).min().unwrap();
         let mut facets: Vec<BoundedFacet> = facets.into_iter().map(BoundedFacet::new).collect();
+        // start height is the lowest z value of all the facets' vetexes
+        let start_height = facets.iter().map(|facet| facet.lower_bound).min().unwrap();
         // compare b to a so it sorts in descending order
         facets.sort_unstable_by(|a, b| b.lower_bound.cmp(&a.lower_bound));
 
