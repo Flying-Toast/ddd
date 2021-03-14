@@ -134,53 +134,26 @@ impl FacetFilter {
     }
 
     /// Increases the current height by `increment` and trims facets whose upper bounds
-    /// are below the new height.
+    /// are below the new height (retaining only facets whose upper bounds are at or above
+    /// the current height).
     ///
     /// `increment` is unsigned because the height can't be decreased - facets below the
     /// current height have already been trimmed,
     pub fn advance_height(&mut self, increment: u64) {
         self.current_height += increment as i64;
-
-        // iterator over self.facets indexes (descending order) of facets below the current height
-        let mut index_iter = self.facets.iter().enumerate().rev()
-            .take_while(|(_, facet)| facet.lower_bound < self.current_height)
-            .filter(|(_, facet)| facet.upper_bound < self.current_height)
-            .map(|(index, _)| index)
-            .peekable();
-
-        let mut ranges: Vec<std::ops::RangeInclusive<usize>> = Vec::new();
-        // this loop collapses consecutive indexes into ranges.
-        // for example if `index_iter` is [0, 2, 3, 5, 6, 7, 9, 12, 13].rev(), then
-        // `ranges` will be filled with [12..=13, 9..=9, 5..=7, 2..=3, 0..=0]
-        while let Some(range_end) = index_iter.next() {
-            let mut range_start = range_end;
-            while let Some(&next) = index_iter.peek() {
-                if next == range_start - 1 {
-                    range_start = next;
-                    let _ = index_iter.next();
-                } else {
-                    break;
-                }
-            }
-            ranges.push(range_start..=range_end);
-        }
-
-        // we use drain to remove the ranges instead of removing by individual indexes,
-        // because doing self.facets.remove(index) n times would cause n memcpys, whereas
-        // self.facets.drain(0..=n) only causes one memcpy.
-        for i in ranges {
-            self.facets.drain(i);
-        }
+        let current_height = self.current_height;
+        self.facets.retain(|facet| facet.upper_bound >= current_height);
     }
 
-    /// Returns an iterator over all facets that intersect with a plane at the current height.
-    /// Includes facets that are entirely flat on the plane.
+    /// Returns an iterator over all facets that intersect with a plane at the current height
+    /// (facets whose lower bounds are below the plane and upper bounds are at or above the
+    /// plane).
     pub fn intersections(&self) -> &[BoundedFacet] {
-        let first_facet_above = self.facets.iter().enumerate().rev()
-            .find(|(_, facet)| facet.lower_bound > self.current_height)
+        let first_facet_not_included = self.facets.iter().enumerate().rev()
+            .find(|(_, facet)| facet.lower_bound >= self.current_height)
             .map(|(index, _)| index);
 
-        if let Some(index) = first_facet_above {
+        if let Some(index) = first_facet_not_included {
             &self.facets[index + 1..]
         } else {
             &self.facets[..]

@@ -26,7 +26,6 @@ fn zinterpolate(a: &Vector3D, b: &Vector3D, plane_z: i64) -> Option<Vector3D> {
     if b.z == plane_z { return Some(b.clone()); }
 
     // check if the points are on opposite sides of the plane
-    let (below, above);
     if (a.z < plane_z && b.z > plane_z) || (a.z > plane_z && b.z < plane_z) {
         todo!();
     } else {
