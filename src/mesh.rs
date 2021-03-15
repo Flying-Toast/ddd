@@ -134,7 +134,7 @@ impl FacetFilter {
     }
 
     /// Increases the current height by `increment` and trims facets whose upper bounds
-    /// are below the new height (retaining only facets whose upper bounds are at or above
+    /// are at or below the new height (retaining only facets whose upper bounds are above
     /// the current height).
     ///
     /// `increment` is unsigned because the height can't be decreased - facets below the
@@ -142,12 +142,11 @@ impl FacetFilter {
     pub fn advance_height(&mut self, increment: u64) {
         self.current_height += increment as i64;
         let current_height = self.current_height;
-        self.facets.retain(|facet| facet.upper_bound >= current_height);
+        self.facets.retain(|facet| facet.upper_bound > current_height);
     }
 
-    /// Returns an iterator over all facets that intersect with a plane at the current height
-    /// (facets whose lower bounds are below the plane and upper bounds are at or above the
-    /// plane).
+    /// Returns all facets that intersect with a plane at the current height (facets whose
+    /// lower bounds are below the plane and upper bounds are above the plane).
     pub fn intersecting_facets(&self) -> &[BoundedFacet] {
         let first_facet_not_included = self.facets.iter().enumerate().rev()
             .find(|(_, facet)| facet.lower_bound >= self.current_height)

@@ -23,8 +23,7 @@ pub struct Slice {
 /// or if both points are exactly on the plane_z plane.
 fn zinterpolate(a: &Vector3D, b: &Vector3D, plane_z: i64) -> Option<Vector3D> {
     if a.z == b.z {
-        // no interpolation if both points are on the same z plane (even if they are
-        // both on the plane_z plane)
+        // no interpolation if both points are on the same z plane
         None
     } else if a.z == plane_z {
         // a is already on the plane - no interp necessary
@@ -39,10 +38,9 @@ fn zinterpolate(a: &Vector3D, b: &Vector3D, plane_z: i64) -> Option<Vector3D> {
         let dz = (b.z - a.z) as f64;
         let zdist_aplane = (plane_z - a.z) as f64;
         let ratio = zdist_aplane / dz;
-        let mut interpolated = a.clone();
+        let mut interpolated = Vector3D::new(a.x, a.y, plane_z);
         interpolated.x += (dx * ratio) as i64;
         interpolated.y += (dy * ratio) as i64;
-        interpolated.z += (dz * ratio) as i64;
         Some(interpolated)
     } else {
         // no intersection exists
@@ -66,6 +64,7 @@ impl<'a> Slicer<'a> {
         let mut ff = scene.to_facet_filter();
 
         while !ff.is_empty() {
+            let plane = ff.current_height();
             for facet in ff.intersecting_facets() {
                 let vs = facet.vertices();
                 let vertex_combos = &[
@@ -73,9 +72,24 @@ impl<'a> Slicer<'a> {
                     [&vs[0], &vs[2]],
                     [&vs[1], &vs[2]],
                 ];
+                let mut intersections = Vec::with_capacity(2);
+                let mut have_vertex_on_plane = false;
                 for [vertex_a, vertex_b] in vertex_combos {
-                    if let Some(intersection) = zinterpolate(vertex_a, vertex_b, ff.current_height()) {
-                        //TODO
+                    if let Some(intersection) = zinterpolate(vertex_a, vertex_b, plane) {
+                        if vertex_a.z == plane || vertex_b.z == plane {
+                            // if the middle vertex lies exactly on the plane, then it will show up
+                            // in two interpolations: top---middle, and bottom---middle. To prevent
+                            // that same point from being in `intersections` twice, we only add one
+                            // vertex that is exactly on the plane (neither of the other two can
+                            // possibly be on the plane too, because one has to be above the plane,
+                            // and the other has to be below).
+                            if have_vertex_on_plane {
+                                continue;
+                            } else {
+                                have_vertex_on_plane = true;
+                            }
+                        }
+                        intersections.push(intersection);
                     }
                 }
             }
@@ -88,6 +102,6 @@ impl<'a> Slicer<'a> {
 }
 
 pub struct SlicerConfig {
-    /// Thickness of each printed slice
+    /// Thickness of each printed slice (in nanometers)
     pub layer_height: u64,
 }
