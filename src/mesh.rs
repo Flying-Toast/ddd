@@ -148,7 +148,7 @@ impl FacetFilter {
     /// Returns an iterator over all facets that intersect with a plane at the current height
     /// (facets whose lower bounds are below the plane and upper bounds are at or above the
     /// plane).
-    pub fn intersections(&self) -> &[BoundedFacet] {
+    pub fn intersecting_facets(&self) -> &[BoundedFacet] {
         let first_facet_not_included = self.facets.iter().enumerate().rev()
             .find(|(_, facet)| facet.lower_bound >= self.current_height)
             .map(|(index, _)| index);
