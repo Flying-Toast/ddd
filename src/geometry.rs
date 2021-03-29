@@ -22,12 +22,26 @@ impl Vector3D {
     }
 
     /// Creates a 2D vector of this 3D vector without the z
-    pub fn to_2d_at_z(&self) -> Vector2D {
+    pub(crate) fn to_2d_at_z(&self) -> Vector2D {
         Vector2D::new(self.x, self.y)
+    }
+
+    /// Returns whether this vector is 'less than' `other`. 'less than' doens't really mean anything,
+    /// it's just used to enable multiple vectors to be ordered deterministically (see crate::slice::zinterpolate)
+    pub(crate) fn pseudo_lt(&self, other: &Self) -> bool {
+        if self.x != other.x {
+            self.x < other.x
+        } else if self.y != other.y {
+            self.y < other.y
+        } else if self.z != other.z {
+            self.z < other.z
+        } else {
+            false
+        }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Vector2D {
     pub x: i64,
     pub y: i64,
@@ -39,12 +53,6 @@ impl Vector2D {
             x,
             y,
         }
-    }
-
-    pub fn distance(&self, other: &Self) -> f64 {
-        let dx = self.x - other.x;
-        let dy = self.y - other.y;
-        f64::hypot(dx as f64, dy as f64)
     }
 }
 

@@ -21,7 +21,16 @@ pub struct Slice {
 /// Returns a 2D point which is the result of interpolating `a` along the line segment a---b so that
 /// its z coordinate is equal to `plane_z`. Returns `None` if a---b doesn't intersect the z=`plane_z` plane,
 /// or if both points are exactly on the plane_z plane.
-fn zinterpolate(a: &Vector3D, b: &Vector3D, plane_z: i64) -> Option<Vector2D> {
+fn zinterpolate(a_in: &Vector3D, b_in: &Vector3D, plane_z: i64) -> Option<Vector2D> {
+    // interpolating a to b can give a different result than b to a, so make sure that whatever order
+    // a and b are passed in, they get interpolated in the same way
+    let (a, b) = {
+        if a_in.pseudo_lt(&b_in) {
+            (a_in, b_in)
+        } else {
+            (b_in, a_in)
+        }
+    };
     if a.z == b.z {
         // no interpolation if both points are on the same z plane
         None
@@ -51,9 +60,6 @@ fn zinterpolate(a: &Vector3D, b: &Vector3D, plane_z: i64) -> Option<Vector2D> {
 /// The `Ok` return value is an `Option` which is `None` if the given list of segments is empty,
 /// or a `Some()` containing the stitched polygon.
 fn stitch_segments(mut segments: Vec<[Vector2D; 2]>) -> Result<Option<Polygon>, Error> {
-    // if the endpoints of two segments are at most this far away, they will be considered connected
-    const MAX_SNAP_DIST: f64 = 3.0;
-
     if segments.is_empty() {
         return Ok(None);
     }
@@ -65,10 +71,10 @@ fn stitch_segments(mut segments: Vec<[Vector2D; 2]>) -> Result<Option<Polygon>, 
     loop {
         let mut next_vert_idx: Option<(usize, usize)> = None;
         for (index, segment) in segments.iter().enumerate() {
-            if segment[0].distance(&open_end) <= MAX_SNAP_DIST {
+            if segment[0] == open_end {
                 next_vert_idx = Some((index, 1));
                 break;
-            } else if segment[1].distance(&open_end) <= MAX_SNAP_DIST {
+            } else if segment[1] == open_end {
                 next_vert_idx = Some((index, 0));
                 break;
             }
