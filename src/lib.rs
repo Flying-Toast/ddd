@@ -10,4 +10,6 @@ pub enum Error {
     MeshFileParse,
     /// Attempted to slice a scene with no meshes in it
     EmptyScene,
+    /// Tried to stitch a set of segments that formed a non-closed polygon
+    OpenStitchPolygon,
 }

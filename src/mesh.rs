@@ -81,6 +81,7 @@ impl Scene {
 /// We convert `Facet`s to `BoundedFacet`s once a scene has been converted to a `FacetFilter`. By that point
 /// the facets are no longer part of a mesh and thus won't be moved or otherwise mutated, so we are able to cache
 /// the upper/lower z bounds knowing that the bounds won't change.
+#[derive(Debug)]
 pub struct BoundedFacet {
     facet: Facet,
     /// Cached value of self.facet.lower_z_bound()

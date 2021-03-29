@@ -40,6 +40,12 @@ impl Vector2D {
             y,
         }
     }
+
+    pub fn distance(&self, other: &Self) -> f64 {
+        let dx = self.x - other.x;
+        let dy = self.y - other.y;
+        f64::hypot(dx as f64, dy as f64)
+    }
 }
 
 /// A closed 2D polygon
