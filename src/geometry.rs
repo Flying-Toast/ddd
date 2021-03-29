@@ -20,6 +20,11 @@ impl Vector3D {
         self.y += other.y;
         self.z += other.z;
     }
+
+    /// Creates a 2D vector of this 3D vector without the z
+    pub fn to_2d_at_z(&self) -> Vector2D {
+        Vector2D::new(self.x, self.y)
+    }
 }
 
 #[derive(Debug, Clone)]

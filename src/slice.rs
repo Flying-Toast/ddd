@@ -1,4 +1,4 @@
-use crate::geometry::{Polygon, Vector3D};
+use crate::geometry::{Polygon, Vector3D, Vector2D};
 use crate::mesh::Scene;
 use crate::Error;
 
@@ -18,19 +18,19 @@ pub struct Slice {
     islands: Vec<SliceIsland>,
 }
 
-/// Returns a new point which is the result of interpolating `a` along the line segment a---b so that
+/// Returns a 2D point which is the result of interpolating `a` along the line segment a---b so that
 /// its z coordinate is equal to `plane_z`. Returns `None` if a---b doesn't intersect the z=`plane_z` plane,
 /// or if both points are exactly on the plane_z plane.
-fn zinterpolate(a: &Vector3D, b: &Vector3D, plane_z: i64) -> Option<Vector3D> {
+fn zinterpolate(a: &Vector3D, b: &Vector3D, plane_z: i64) -> Option<Vector2D> {
     if a.z == b.z {
         // no interpolation if both points are on the same z plane
         None
     } else if a.z == plane_z {
         // a is already on the plane - no interp necessary
-        Some(a.clone())
+        Some(a.to_2d_at_z())
     } else if b.z == plane_z {
         // b is already on the plane - no interp necessary
-        Some(b.clone())
+        Some(b.to_2d_at_z())
     } else if (a.z < plane_z && b.z > plane_z) || (a.z > plane_z && b.z < plane_z) {
         // points are on opposite sides of the plane
         let dx = (b.x - a.x) as f64;
@@ -38,7 +38,7 @@ fn zinterpolate(a: &Vector3D, b: &Vector3D, plane_z: i64) -> Option<Vector3D> {
         let dz = (b.z - a.z) as f64;
         let zdist_aplane = (plane_z - a.z) as f64;
         let ratio = zdist_aplane / dz;
-        let mut interpolated = Vector3D::new(a.x, a.y, plane_z);
+        let mut interpolated = Vector2D::new(a.x, a.y);
         interpolated.x += (dx * ratio) as i64;
         interpolated.y += (dy * ratio) as i64;
         Some(interpolated)
