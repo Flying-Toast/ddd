@@ -31,6 +31,7 @@ fn zinterpolate(a_in: &Vector3D, b_in: &Vector3D, plane_z: i64) -> Option<Vector
             (b_in, a_in)
         }
     };
+
     if a.z == b.z {
         // no interpolation if both points are on the same z plane
         None
@@ -57,11 +58,14 @@ fn zinterpolate(a_in: &Vector3D, b_in: &Vector3D, plane_z: i64) -> Option<Vector
     }
 }
 
-/// The `Ok` return value is an `Option` which is `None` if the given list of segments is empty,
-/// or a `Some()` containing the stitched polygon.
-fn stitch_segments(mut segments: Vec<[Vector2D; 2]>) -> Result<Option<Polygon>, Error> {
+/// Extracts one group of connected segments from `segments` and stitches them into a polygon.
+fn stitch_next(segments: &mut Vec<[Vector2D; 2]>) -> Option<Result<Polygon, Error>> {
     if segments.is_empty() {
-        return Ok(None);
+        return None;
+    }
+
+    if segments.len() < 3 {
+        return Some(Err(Error::OpenStitchPolygon));
     }
 
     let [first_segment_a, first_segment_b] = segments.pop().unwrap();
@@ -80,6 +84,10 @@ fn stitch_segments(mut segments: Vec<[Vector2D; 2]>) -> Result<Option<Polygon>, 
             }
         }
 
+        if next_vert_idx.is_none() && open_end != *builder.get_start() {
+            return Some(Err(Error::OpenStitchPolygon));
+        }
+
         if let Some((index, vertindex)) = next_vert_idx {
             let segment = segments.remove(index);
             builder.line_to(open_end);
@@ -90,11 +98,7 @@ fn stitch_segments(mut segments: Vec<[Vector2D; 2]>) -> Result<Option<Polygon>, 
                 open_end = v1;
             }
         } else {
-            if segments.is_empty() {
-                return Ok(Some(builder.close()));
-            } else {
-                return Err(Error::OpenStitchPolygon);
-            }
+            return Some(Ok(builder.close()));
         }
     }
 }
@@ -144,35 +148,28 @@ impl<'a> Slicer<'a> {
                                 have_vertex_on_plane = true;
                             }
                         }
-                        assert!(idx < 2, "{:?} intersected more than twice with plane {}", facet, plane);
+                        assert!(idx < 2, "{:?} intersected more than twice with plane z={}", facet, plane);
                         intersections[idx] = intersection;
                         idx += 1;
                     }
                 }
                 // idx is 2 because it is still incremented after the last insertion into the array
-                assert_eq!(idx, 2, "{:?} didn't have two intersections with plane {}", facet, plane);
+                assert_eq!(idx, 2, "{:?} didn't have two intersections with plane z={}", facet, plane);
                 segments.push(intersections);
             }
 
-            // TODO: currently assumes each layer is a single closed polygon with no holes
-            if let Some(outline) = stitch_segments(segments)? {
-                slices.push(Slice {
-                    thickness: self.config.layer_height,
-                    islands: vec![
-                        SliceIsland {
-                            outline,
-                            holes: Vec::new(),
-                        }
-                    ],
-                });
-            } else {
-                // an empty slice, needed because slices don't keep track of their own height.
-                // omitting an empty slice would make the slices above it appear lower
-                slices.push(Slice {
-                    thickness: self.config.layer_height,
-                    islands: Vec::new(),
+            let mut islands = Vec::new();
+            while let Some(outline) = stitch_next(&mut segments) {
+                islands.push(SliceIsland {
+                    outline: outline?,
+                    // TODO: holes. stitch_next() currently treats holes like filled areas
+                    holes: Vec::new(),
                 });
             }
+            slices.push(Slice {
+                thickness: self.config.layer_height,
+                islands,
+            });
 
             ff.advance_height(self.config.layer_height);
         }

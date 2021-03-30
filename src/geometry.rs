@@ -102,4 +102,8 @@ impl PolygonBuilder {
             vertices,
         }
     }
+
+    pub fn get_start(&self) -> &Vector2D {
+        &self.start_point
+    }
 }
