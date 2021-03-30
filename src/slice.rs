@@ -1,5 +1,5 @@
 use crate::geometry::{Polygon, Vector3D, Vector2D};
-use crate::mesh::Scene;
+use crate::mesh::{Scene, BoundedFacet};
 use crate::Error;
 
 /// A single closed polygon in a slice. One slice can contain multiple closed polygons that aren't connected.
@@ -108,6 +108,56 @@ pub struct Slicer<'a> {
     config: &'a SlicerConfig,
 }
 
+fn intersect_facets_at_plane(facets: &[BoundedFacet], plane: i64) -> Result<Vec<SliceIsland>, Error> {
+    let mut segments = Vec::new();
+    for facet in facets {
+        let vs = facet.vertices();
+        let vertex_combos = &[
+            [&vs[0], &vs[1]],
+            [&vs[0], &vs[2]],
+            [&vs[1], &vs[2]],
+        ];
+        // dummy array starting values, will get overwritten
+        let mut intersections: [Vector2D; 2] = [Vector2D::new(0, 0), Vector2D::new(0, 0)];
+        let mut idx = 0;
+        let mut have_vertex_on_plane = false;
+        for [vertex_a, vertex_b] in vertex_combos {
+            if let Some(intersection) = zinterpolate(vertex_a, vertex_b, plane) {
+                if vertex_a.z == plane || vertex_b.z == plane {
+                    // if the middle vertex lies exactly on the plane, then it will show up
+                    // in two interpolations: top---middle, and bottom---middle. To prevent
+                    // that same point from being recorded twice, we only add one vertex
+                    // that is exactly on the plane (neither of the other two can possibly
+                    // be on the plane too, because one has to be above the plane, and the
+                    // other has to be below).
+                    if have_vertex_on_plane {
+                        continue;
+                    } else {
+                        have_vertex_on_plane = true;
+                    }
+                }
+                assert!(idx < 2, "{:?} intersected more than twice with plane z={}", facet, plane);
+                intersections[idx] = intersection;
+                idx += 1;
+            }
+        }
+        // idx is 2 because it is still incremented after the last insertion into the array
+        assert_eq!(idx, 2, "{:?} didn't have two intersections with plane z={}", facet, plane);
+        segments.push(intersections);
+    }
+
+    let mut islands = Vec::new();
+    while let Some(outline) = stitch_next(&mut segments) {
+        islands.push(SliceIsland {
+            outline: outline?,
+            // TODO: holes. stitch_next() currently treats holes like filled areas
+            holes: Vec::new(),
+        });
+    }
+
+    Ok(islands)
+}
+
 impl<'a> Slicer<'a> {
     pub fn new(config: &'a SlicerConfig) -> Self {
         Self { config }
@@ -121,61 +171,18 @@ impl<'a> Slicer<'a> {
 
         while !ff.is_empty() {
             let plane = ff.current_height();
-            let mut segments = Vec::new();
-            for facet in ff.intersecting_facets() {
-                let vs = facet.vertices();
-                let vertex_combos = &[
-                    [&vs[0], &vs[1]],
-                    [&vs[0], &vs[2]],
-                    [&vs[1], &vs[2]],
-                ];
-                // dummy array starting values, will get overwritten
-                let mut intersections: [Vector2D; 2] = [Vector2D::new(0, 0), Vector2D::new(0, 0)];
-                let mut idx = 0;
-                let mut have_vertex_on_plane = false;
-                for [vertex_a, vertex_b] in vertex_combos {
-                    if let Some(intersection) = zinterpolate(vertex_a, vertex_b, plane) {
-                        if vertex_a.z == plane || vertex_b.z == plane {
-                            // if the middle vertex lies exactly on the plane, then it will show up
-                            // in two interpolations: top---middle, and bottom---middle. To prevent
-                            // that same point from being recorded twice, we only add one vertex
-                            // that is exactly on the plane (neither of the other two can possibly
-                            // be on the plane too, because one has to be above the plane, and the
-                            // other has to be below).
-                            if have_vertex_on_plane {
-                                continue;
-                            } else {
-                                have_vertex_on_plane = true;
-                            }
-                        }
-                        assert!(idx < 2, "{:?} intersected more than twice with plane z={}", facet, plane);
-                        intersections[idx] = intersection;
-                        idx += 1;
-                    }
-                }
-                // idx is 2 because it is still incremented after the last insertion into the array
-                assert_eq!(idx, 2, "{:?} didn't have two intersections with plane z={}", facet, plane);
-                segments.push(intersections);
-            }
-
-            let mut islands = Vec::new();
-            while let Some(outline) = stitch_next(&mut segments) {
-                islands.push(SliceIsland {
-                    outline: outline?,
-                    // TODO: holes. stitch_next() currently treats holes like filled areas
-                    holes: Vec::new(),
-                });
-            }
+            let facets = ff.intersecting_facets();
+            let islands = intersect_facets_at_plane(facets, plane)?;
             slices.push(Slice {
-                thickness: self.config.layer_height,
                 islands,
+                thickness: self.config.layer_height,
             });
-
             ff.advance_height(self.config.layer_height);
         }
 
         Ok(slices)
     }
+
 }
 
 pub struct SlicerConfig {
