@@ -182,7 +182,6 @@ impl<'a> Slicer<'a> {
 
         Ok(slices)
     }
-
 }
 
 pub struct SlicerConfig {
