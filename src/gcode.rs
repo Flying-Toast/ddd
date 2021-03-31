@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use crate::slice::Slice;
+use crate::ConfigProfile;
 
 #[derive(PartialEq, Eq, Hash, Copy, Clone)]
 pub enum Axis {
@@ -27,18 +28,18 @@ pub enum Command {
     /// Moves each axis by the given amount (or *to* the given location, depending on the
     /// positioning mode)
     Move {
-        amounts: PerAxis<i32>,
+        amounts: PerAxis<i64>,
         speed: u32,
     },
     /// Like `Move`, but extrudes filament during the move
     ExtrudeMove {
-        amounts: PerAxis<i32>,
+        amounts: PerAxis<i64>,
         speed: u32,
         /// How much filament to extrude during the move
         extrude_len: u32,
     },
-    SetPosition(PerAxis<i32>),
-    SetExtruderPosition(i32),
+    SetPosition(PerAxis<i64>),
+    SetExtruderPosition(i64),
     BlockingSetTemp(u32),
 }
 
@@ -103,28 +104,47 @@ impl<T> PerAxis<T> {
     }
 }
 
-pub struct GCodeBuilder {
-    commands: Vec<Command>,
+pub fn slices_to_gcode(config: &ConfigProfile, slices: &[Slice]) -> String {
+    let mut gcoder = GCodeBuilder::new(config);
+    gcoder.command(Command::SetRelativePositioning);
+    gcoder.command(Command::Home(PerAxis::none()));
+    gcoder.command(Command::BlockingSetTemp(config.hotend_temperature));
+    for slice in slices {
+        gcoder.add_slice(slice);
+    }
+    gcoder.generate_gcode()
 }
 
-impl GCodeBuilder {
-    pub fn new() -> Self {
+struct GCodeBuilder<'a> {
+    commands: Vec<Command>,
+    config: &'a ConfigProfile,
+}
+
+impl<'a> GCodeBuilder<'a> {
+    fn new(config: &'a ConfigProfile) -> Self {
         Self {
             commands: Vec::new(),
+            config,
         }
     }
 
     /// Insert a raw command
-    pub fn command(&mut self, cmd: Command) {
+    fn command(&mut self, cmd: Command) {
         self.commands.push(cmd);
     }
 
     /// Adds gcode to print the given slice
-    pub fn add_slice(&mut self, slice: &Slice) {
+    fn add_slice(&mut self, slice: &Slice) {
+        // increment z height
+        self.command(Command::Move {
+            speed: self.config.travel_speed,
+            amounts: PerAxis::none()
+                .set(Axis::Z, slice.thickness() as i64),
+        });
         todo!();
     }
 
-    pub fn generate_gcode(&self) -> String {
+    fn generate_gcode(&self) -> String {
         let mut s = String::new();
         for cmd in self.commands.iter().map(Command::as_code) {
             s.push_str(&cmd);

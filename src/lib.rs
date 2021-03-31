@@ -14,3 +14,12 @@ pub enum Error {
     /// Tried to stitch a set of segments that formed a non-closed polygon
     OpenStitchPolygon,
 }
+
+/// Global configuration
+pub struct ConfigProfile {
+    /// Thickness of each printed slice (in nanometers)
+    pub layer_height: u64,
+    pub hotend_temperature: u32,
+    /// Speed to move when not extruding
+    pub travel_speed: u32,
+}

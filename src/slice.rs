@@ -1,6 +1,6 @@
 use crate::geometry::{Polygon, Vector3D, Vector2D};
 use crate::mesh::{Scene, BoundedFacet};
-use crate::Error;
+use crate::{Error, ConfigProfile};
 
 /// A single closed polygon in a slice. One slice can contain multiple closed polygons that aren't connected.
 #[derive(Debug)]
@@ -10,12 +10,32 @@ pub struct SliceIsland {
     holes: Vec<Polygon>,
 }
 
+impl SliceIsland {
+    pub fn outline(&self) -> &Polygon {
+        &self.outline
+    }
+
+    pub fn holes(&self) -> &[Polygon] {
+        &self.holes
+    }
+}
+
 /// A single layer of a sliced mesh. Composed of multiple `SliceIsland`s.
 #[derive(Debug)]
 pub struct Slice {
     /// The thickness (in nanometers) of this slice (the "layer height")
     thickness: u64,
     islands: Vec<SliceIsland>,
+}
+
+impl Slice {
+    pub fn thickness(&self) -> u64 {
+        self.thickness
+    }
+
+    pub fn islands(&self) -> &[SliceIsland] {
+        &self.islands
+    }
 }
 
 /// Returns a 2D point which is the result of interpolating `a` along the line segment a---b so that
@@ -103,11 +123,6 @@ fn stitch_next(segments: &mut Vec<[Vector2D; 2]>) -> Option<Result<Polygon, Erro
     }
 }
 
-/// Turns meshes into [Slice]s
-pub struct Slicer<'a> {
-    config: &'a SlicerConfig,
-}
-
 fn intersect_facets_at_plane(facets: &[BoundedFacet], plane: i64) -> Result<Vec<SliceIsland>, Error> {
     let mut segments = Vec::new();
     for facet in facets {
@@ -158,8 +173,13 @@ fn intersect_facets_at_plane(facets: &[BoundedFacet], plane: i64) -> Result<Vec<
     Ok(islands)
 }
 
+/// Turns meshes into [Slice]s
+pub struct Slicer<'a> {
+    config: &'a ConfigProfile,
+}
+
 impl<'a> Slicer<'a> {
-    pub fn new(config: &'a SlicerConfig) -> Self {
+    pub fn new(config: &'a ConfigProfile) -> Self {
         Self { config }
     }
 
@@ -182,9 +202,4 @@ impl<'a> Slicer<'a> {
 
         Ok(slices)
     }
-}
-
-pub struct SlicerConfig {
-    /// Thickness of each printed slice (in nanometers)
-    pub layer_height: u64,
 }
