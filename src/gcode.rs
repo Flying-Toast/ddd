@@ -106,9 +106,7 @@ impl<T> PerAxis<T> {
 
 pub fn slices_to_gcode(config: &ConfigProfile, slices: &[Slice]) -> String {
     let mut gcoder = GCodeBuilder::new(config);
-    gcoder.command(Command::SetRelativePositioning);
-    gcoder.command(Command::Home(PerAxis::none()));
-    gcoder.command(Command::BlockingSetTemp(config.hotend_temperature));
+    gcoder.add_starting_gcode();
     for slice in slices {
         gcoder.add_slice(slice);
     }
@@ -131,6 +129,12 @@ impl<'a> GCodeBuilder<'a> {
     /// Insert a raw command
     fn command(&mut self, cmd: Command) {
         self.commands.push(cmd);
+    }
+
+    fn add_starting_gcode(&mut self) {
+        self.command(Command::SetRelativePositioning);
+        self.command(Command::Home(PerAxis::none()));
+        self.command(Command::BlockingSetTemp(self.config.hotend_temperature));
     }
 
     /// Adds gcode to print the given slice
