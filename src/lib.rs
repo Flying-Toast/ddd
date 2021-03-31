@@ -3,6 +3,7 @@ pub mod geometry;
 pub mod parsing;
 pub mod mesh;
 pub mod slice;
+pub mod gcode;
 
 #[derive(Debug)]
 pub enum Error {
