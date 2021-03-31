@@ -125,8 +125,13 @@ impl GCodeBuilder {
     }
 
     pub fn generate_gcode(&self) -> String {
-        self.commands.iter()
-            .map(Command::as_code)
-            .collect()
+        let mut s = String::new();
+        for cmd in self.commands.iter().map(Command::as_code) {
+            s.push_str(&cmd);
+            s.push('\n');
+        }
+        // remove trailing newline
+        s.pop();
+        s
     }
 }
