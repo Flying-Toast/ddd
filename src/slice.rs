@@ -109,7 +109,7 @@ fn stitch_next(segments: &mut Vec<[Vector2D; 2]>) -> Option<Result<Polygon, Erro
         }
 
         if let Some((index, vertindex)) = next_vert_idx {
-            let segment = segments.remove(index);
+            let segment = segments.swap_remove(index);
             builder.line_to(open_end);
             let [v0, v1] = segment;
             if vertindex == 0 {
