@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::borrow::Cow;
 use crate::slice::Slice;
 use crate::ConfigProfile;
 
@@ -44,7 +45,7 @@ pub enum Command {
 }
 
 impl Command {
-    fn as_code(&self) -> String {
+    fn as_code(&self) -> Cow<'static, str> {
         use Command::*;
         match self {
             Home(axes) => format!(
@@ -52,7 +53,7 @@ impl Command {
                 axes.entries()
                     .map(|(axis, _)| format!(" {}", axis.to_str()))
                     .collect::<String>(),
-            ),
+            ).into(),
             SetAbsolutePositioning => "G90".into(),
             SetRelativePositioning => "G91".into(),
             Move { amounts, speed } => format!(
@@ -61,7 +62,7 @@ impl Command {
                     .map(|(axis, amnt)| format!("{}{} ", axis.to_str(), amnt))
                     .collect::<String>(),
                 speed,
-            ),
+            ).into(),
             ExtrudeMove { amounts, speed, extrude_len } => format!(
                 "G1 {}E{} F{}",
                 amounts.entries()
@@ -69,15 +70,15 @@ impl Command {
                     .collect::<String>(),
                 extrude_len,
                 speed,
-            ),
+            ).into(),
             SetPosition(pozs) => format!(
                 "G92{}",
                 pozs.entries()
                     .map(|(axis, pos)| format!(" {}{}", axis.to_str(), pos))
                     .collect::<String>(),
-            ),
-            SetExtruderPosition(pos) => format!("G92 E{}", pos),
-            BlockingSetTemp(temp) => format!("M109 S{}", temp),
+            ).into(),
+            SetExtruderPosition(pos) => format!("G92 E{}", pos).into(),
+            BlockingSetTemp(temp) => format!("M109 S{}", temp).into(),
         }
     }
 }
