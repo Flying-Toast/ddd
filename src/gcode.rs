@@ -117,6 +117,7 @@ pub fn slices_to_gcode(config: &ConfigProfile, slices: &[Slice]) -> String {
 struct GCodeBuilder<'a> {
     commands: Vec<Command>,
     config: &'a ConfigProfile,
+    top_height: i64,
 }
 
 impl<'a> GCodeBuilder<'a> {
@@ -124,6 +125,7 @@ impl<'a> GCodeBuilder<'a> {
         Self {
             commands: Vec::new(),
             config,
+            top_height: 0,
         }
     }
 
@@ -133,20 +135,35 @@ impl<'a> GCodeBuilder<'a> {
     }
 
     fn add_starting_gcode(&mut self) {
-        self.command(Command::SetRelativePositioning);
+        self.command(Command::SetAbsolutePositioning);
         self.command(Command::Home(PerAxis::none()));
         self.command(Command::BlockingSetTemp(self.config.hotend_temperature));
     }
 
     /// Adds gcode to print the given slice
     fn add_slice(&mut self, slice: &Slice) {
+        //FIXME: don't hardcode nm/mm conversion (200000)
+
+        self.top_height += (slice.thickness() * 200_000) as i64;
         // increment z height
         self.command(Command::Move {
             speed: self.config.travel_speed,
             amounts: PerAxis::none()
-                .set(Axis::Z, slice.thickness() as i64),
+                .set(Axis::Z, self.top_height),
         });
-        todo!();
+
+        for island in slice.islands() {
+            //TODO: island holes
+            for vertex in island.outline().vertices() {
+                self.command(Command::ExtrudeMove {
+                    speed: 1, //TODO
+                    extrude_len: 1, //TODO
+                    amounts: PerAxis::none()
+                        .set(Axis::X, vertex.x * 200_000)
+                        .set(Axis::Y, vertex.y * 200_000),
+                })
+            }
+        }
     }
 
     fn generate_gcode(&self) -> String {

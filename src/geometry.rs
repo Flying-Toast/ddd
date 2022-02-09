@@ -67,6 +67,11 @@ impl Polygon {
     pub fn builder(start: Vector2D) -> PolygonBuilder {
         PolygonBuilder::new(start)
     }
+
+    /// The vertices of this polygon
+    pub fn vertices(&self) -> &[Vector2D] {
+        &self.vertices
+    }
 }
 
 /// Builds a closed polygon.
